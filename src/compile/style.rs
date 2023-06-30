@@ -11,7 +11,7 @@ use crate::{
     signal::{Outcome, Product},
 };
 use lightningcss::{
-    stylesheet::{MinifyOptions, ParserOptions, PrinterOptions, StyleSheet},
+    stylesheet::{MinifyOptions, ParserFlags, ParserOptions, PrinterOptions, StyleSheet},
     targets::Browsers,
     targets::Targets,
 };
@@ -92,12 +92,25 @@ fn browser_lists(query: &str) -> Result<Option<Browsers>> {
 async fn process_css(proj: &Project, css: String) -> Result<Product> {
     let browsers = browser_lists(&proj.style.browserquery).context("leptos.style.browserquery")?;
 
-    let mut stylesheet =
-        StyleSheet::parse(&css, ParserOptions::default()).map_err(|e| anyhow!("{e}"))?;
+    // let mut flags = ParserFlags::empty();
+    // flags.set(ParserFlags::NESTING, true);
+    // flags.set(ParserFlags::CUSTOM_MEDIA, true);
 
-    if proj.release {
-        stylesheet.minify(MinifyOptions::default())?;
-    }
+    let parser_options = ParserOptions {
+        // flags: flags,
+        flags: ParserFlags::NESTING | ParserFlags::CUSTOM_MEDIA,
+        ..ParserOptions::default()
+    };
+
+    let mut stylesheet = StyleSheet::parse(&css, parser_options).map_err(|e| anyhow!("{e}"))?;
+
+    // if proj.release {
+    // stylesheet.minify(MinifyOptions::default())?;
+    stylesheet.minify(MinifyOptions {
+        targets: Targets::from(browsers),
+        ..MinifyOptions::default()
+    })?;
+    // }
 
     let options = PrinterOptions::<'_> {
         targets: Targets::from(browsers),

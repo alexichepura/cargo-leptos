@@ -52,7 +52,7 @@ pub async fn server(
 }
 
 pub fn server_cargo_process(cmd: &str, proj: &Project) -> Result<(String, String, Child)> {
-    let mut command = Command::new("cargo");
+    let mut command = Command::new(proj.bin.cargo_command.as_deref().unwrap_or("cargo"));
     let (envs, line) = build_cargo_server_cmd(cmd, proj, &mut command);
     Ok((envs, line, command.spawn()?))
 }
@@ -69,7 +69,10 @@ pub fn build_cargo_server_cmd(
     if cmd != "test" {
         args.push(format!("--bin={}", proj.bin.target))
     }
-    args.push("--target-dir=target/server".to_string());
+    args.push(format!(
+        "--target-dir={}",
+        proj.bin.target_dir.as_deref().unwrap_or("target/server")
+    ));
     if let Some(triple) = &proj.bin.target_triple {
         args.push(format!("--target={triple}"));
     }
